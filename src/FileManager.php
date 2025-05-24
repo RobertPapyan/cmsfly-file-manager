@@ -3,8 +3,8 @@
 namespace MatematCmsfly\CmsflyFileManager;
 
 use Alexusmai\LaravelFileManager\FileManager as AlexFileManagerFileManager;
-use MatematCmsfly\CmsflyFileManager\Traits\SearchTrait;
 use Alexusmai\LaravelFileManager\Services\ConfigService\ConfigRepository;
+use MatematCmsfly\CmsflyFileManager\Traits\SearchTrait;
 
 class FileManager extends AlexFileManagerFileManager
 {
@@ -20,12 +20,12 @@ class FileManager extends AlexFileManagerFileManager
         $content = $this->getSearchContent($disk, $search);
 
         return [
-            'result'      => [
-                'status'  => 'success',
+            'result' => [
+                'status' => 'success',
                 'message' => null,
             ],
             'directories' => $content['directories'],
-            'files'       => $content['files']
+            'files' => $content['files'],
         ];
     }
 }

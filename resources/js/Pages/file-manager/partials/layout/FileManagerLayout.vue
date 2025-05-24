@@ -1,46 +1,39 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
-import Actions from "../structure/Actions.vue"
-import Navigation from '../structure/Navigation.vue';
-import { tree, search } from '../composables/useFileManagerCore';
-import { dropSelection } from '../composables/useFileManagerSelect';
-import NavItem from '../structure/sidebar/NavItem.vue';
+import { onMounted } from "vue";
+import Actions from "../structure/Actions.vue";
+import Navigation from "../structure/Navigation.vue";
+import { initFileManager, tree } from "../composables/useFileManagerCore";
+import { dropSelection } from "../composables/useFileManagerSelect";
+import NavItem from "../structure/sidebar/NavItem.vue";
+import Content from "../structure/content/Content.vue";
+import { File as FileType } from "../types";
 
-onMounted(()=>{
-  const main = document.querySelector('main')
-  if(main){
-      main.addEventListener('click', (event) => {
-        if (event.target === main) {
-          dropSelection()
-        }
-    });
+defineEmits<{
+  select: [file: FileType];
+}>();
 
-  }
-
-})
-
+onMounted(() => {
+  initFileManager();
+});
 </script>
 
 <template>
-  <div>
-    <div class="rounded-md border">
-        <div>
-          <Actions />
-          <Navigation />
-        </div>
-        <div class="flex">
-
-          <div @click.self="dropSelection" class="basis-1/5 shrink-0 border-r p-2 overflow-auto">
-            <ul>
-              <NavItem v-model="tree" />
-            </ul>
-          </div>
-
-            <slot></slot>
-        </div>
-
+  <div class="has-[[data-slot=drag-overlay][data-state=true]]:select-none">
+    <div>
+      <Actions />
+      <Navigation />
     </div>
+    <div class="flex">
+      <div
+        @click.self="dropSelection"
+        class="min-w-64 shrink-0 border-r p-2 overflow-auto"
+      >
+        <ul>
+          <NavItem v-model="tree" />
+        </ul>
+      </div>
 
-
+      <Content @select="$emit('select', $event)" />
+    </div>
   </div>
 </template>

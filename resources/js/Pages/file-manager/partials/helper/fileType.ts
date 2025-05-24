@@ -99,6 +99,6 @@ const extensionsList: Record<string, string> = {
   rpm: "Red Hat Package Manager File",
 };
 
-export function getFileType(extension: string): string {
+export function getFileType(extension: string) {
   return extensionsList[extension.toLowerCase()] ?? "File";
 }

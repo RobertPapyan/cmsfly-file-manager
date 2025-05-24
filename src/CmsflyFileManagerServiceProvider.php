@@ -13,22 +13,14 @@ class CmsflyFileManagerServiceProvider extends PackageServiceProvider
         $package
             ->name('cmsfly-file-manager')
             ->hasConfigFile(['cmsfly-file-manager', 'file-manager'])
-            ->hasInertiaComponents()
             ->hasRoutes(['web'])
             ->hasInstallCommand(function (InstallCommand $command) {
                 $command
-                    ->publishInertiaComponents();
-
+                    ->publishConfigFile();
             });
     }
 
-    public function packageRegistered(): void
-    {
+    public function packageRegistered(): void {}
 
-    }
-
-    public function packageBooted(): void
-    {
-
-    }
+    public function packageBooted(): void {}
 }

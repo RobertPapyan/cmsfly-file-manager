@@ -8,10 +8,8 @@ use Inertia\Response;
 
 class FileManagerController extends Controller
 {
-
-
     public function index(): Response
     {
-        return Inertia::render('file-manager/Index');
+        return Inertia::render('cmsfly-file-manager/file-manager/Index');
     }
 }

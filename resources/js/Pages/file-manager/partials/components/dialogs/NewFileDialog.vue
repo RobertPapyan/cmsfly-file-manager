@@ -1,85 +1,67 @@
 <script setup lang="ts">
-import { Dialog, DialogScrollContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogClose} from '@matemat-cmsfly/cmsfly-core/components/ui/dialog';
-import { Button } from '@matemat-cmsfly/cmsfly-core/components/ui/button';
-import { FormInput } from '@matemat-cmsfly/cmsfly-core/components/form';
-import { useAppFetch } from '@matemat-cmsfly/cmsfly-core/composables/useAppFetch';
-import { ref } from 'vue';
-import { FmBaseResponse } from '../../types';
-import { currentDisk, currentFolder, refresh } from '../../composables/useFileManagerCore';
-import { showDialog } from '../../composables/useFileManagerActions';
-import { toast } from '@matemat-cmsfly/cmsfly-core/components/ui/toast';
+import { FormInput } from "@matemat-cmsfly/cmsfly-core/components/form";
+import { useAppFetch } from "@matemat-cmsfly/cmsfly-core/composables/useAppFetch";
+import { ref } from "vue";
+import { FmBaseResponse } from "../../types";
+import {
+  currentDisk,
+  currentFolder,
+  refresh,
+} from "../../composables/useFileManagerCore";
+import { toast } from "vue-sonner";
+import { ModalForm } from "@matemat-cmsfly/cmsfly-core/components/modal";
+import { InertiaFormProps } from "@inertiajs/vue3";
 
-const processing = ref(false)
+const dialog = ref(false)
 
-const name = ref('')
-
-const inputError  = ref< string | undefined>(undefined)
-
-
-async function handleSubmit(){
-  processing.value = true
-
-  const {data,error} = await useAppFetch(route('fm.create-file')).post({
-    disk:currentDisk.value,
-    path:currentFolder.value?.path,
-    name:name.value
-  }).json<FmBaseResponse>()
-
-  processing.value = false
-
-  if(data.value?.result.status == 'success'){
-    showDialog.value = false
-
-    toast({
-      title: 'File',
-      description: 'File created successfully.',
-      variant: 'constructive',
-    })
-
-    refresh()
-    return
-  }
-
-  if(data.value?.result.status == 'warning'){
-
-    if(data.value?.result.message == 'fileExist'){
-      inputError.value = 'File with this name already exists.'
-    }else{
-      inputError.value = 'Something went wrong.'
-    }
-  }
-
+const formData = {
+  name:''
 }
 
+async function handleSubmit(form: InertiaFormProps<typeof formData>) {
+  if(!currentFolder.value)return
+  form.processing = true
+
+  const { data } = await useAppFetch(route("fm.create-file"))
+    .post({
+      disk: currentDisk.value,
+      path: currentFolder.value.path,
+      name: form.data().name,
+    })
+    .json<FmBaseResponse>();
+
+  form.processing = false;
+
+  if (data.value?.result.status == "success") {
+    form.reset()
+    dialog.value = false;
+    toast.success("File created");
+
+    refresh();
+    return;
+  }
+
+  if (data.value?.result.status == "warning") {
+    toast.error(data.value.result.message == "fileExist" ? "File with this name already exists" : "Something went wrong")
+  }
+}
 </script>
 
 <template>
-<Dialog>
-  <DialogScrollContent class="max-w-xl">
-    <DialogHeader>
-      <DialogTitle> Create New File </DialogTitle>
-      <DialogDescription>
-        Create new file in current directory
-      </DialogDescription>
-    </DialogHeader>
-    <div>
-
-      <FormInput v-model="name" :error="inputError" id="new_file_name" type="text" label="File name" required/>
-
-    </div>
-    <DialogFooter>
-      <DialogClose>
-        <Button :variant="'outline'">
-            Cancel
-        </Button>
-      </DialogClose>
-      <Button
-      :disabled="processing"
-      @click="handleSubmit"
-      type="submit">
-        Submit
-      </Button>
-    </DialogFooter>
-  </DialogScrollContent>
-</Dialog>
+  <ModalForm
+    v-model:open="dialog"
+    title="Create New File"
+    description="Create new file in current directory"
+    :data="formData"
+    @submit-form="handleSubmit"
+    >
+      <slot />
+      <template #form="{ bind }">
+        <FormInput
+            v-bind="bind.name"
+            label="File name"
+            required
+          />
+      </template>
+  </ModalForm>
 </template>

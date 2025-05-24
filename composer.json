@@ -1,27 +1,31 @@
 {
-    "name": "matemat-cmsfly/cmsfly-file-manager",
-    "description": "Cmsfly File Manager",
-    "autoload": {
-      "psr-4": {
-        "MatematCmsfly\\CmsflyFileManager\\": "src/"
-      }
+  "name": "matemat-cmsfly/cmsfly-file-manager",
+  "description": "Cmsfly File Manager",
+  "autoload": {
+    "psr-4": {
+      "MatematCmsfly\\CmsflyFileManager\\": "src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Arshak Hovhannisyan",
+      "email": "arshak.hovhannisyan@matemat.io"
     },
-    "authors": [
-      {
-        "name": "Robert Papyan",
-        "email": "robert.papyan@matemat.io"
-      }
-    ],
-    "require": {
-      "php": "^8.2",
-      "matemat-cmsfly/cmsfly-core": "dev-master",
-      "alexusmai/laravel-file-manager": "^3.3.0"
-    },
-    "extra": {
-      "laravel": {
-        "providers": [
-          "MatematCmsfly\\CmsflyFileManager\\CmsflyFileManagerServiceProvider"
-        ]
-      }
+    {
+      "name": "Robert Papyan",
+      "email": "robert.papyan@matemat.io"
+    }
+  ],
+  "require": {
+    "php": "^8.2",
+    "matemat-cmsfly/cmsfly-core": "dev-master",
+    "alexusmai/laravel-file-manager": "^3.3.0"
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "MatematCmsfly\\CmsflyFileManager\\CmsflyFileManagerServiceProvider"
+      ]
     }
   }
+}

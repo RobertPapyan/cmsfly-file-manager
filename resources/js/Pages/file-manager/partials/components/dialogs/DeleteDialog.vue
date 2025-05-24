@@ -1,164 +1,99 @@
 <script setup lang="ts">
+import { useAppFetch } from "@matemat-cmsfly/cmsfly-core/composables/useAppFetch";
+import { ref, onMounted, watch, computed } from "vue";
+import { FmBaseResponse, File, Directory } from "../../types";
+import {
+  currentDisk,
+  currentFolder,
+  refresh,
+  updateTreeFolder,
+} from "../../composables/useFileManagerCore";
 
-import { Dialog, DialogScrollContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogClose} from '@matemat-cmsfly/cmsfly-core/components/ui/dialog';
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@matemat-cmsfly/cmsfly-core/components/ui/table';
-import { Button } from '@matemat-cmsfly/cmsfly-core/components/ui/button';
-import { useAppFetch } from '@matemat-cmsfly/cmsfly-core/composables/useAppFetch';
-import {  ref, onMounted, watch, computed } from 'vue';
-import { FmBaseResponse, File, Directory, SortOption } from '../../types';
-import { currentDisk, currentFolder, refresh, isSearch } from '../../composables/useFileManagerCore';
-import { showDialog } from '../../composables/useFileManagerActions';
-import { toast } from '@matemat-cmsfly/cmsfly-core/components/ui/toast';
-import { dropSelection, selectedItems , selectSingle, toggleSelect } from '../../composables/useFileManagerSelect';
-import DirectoryComponent from '../content/Directory.vue';
-import FileComponent from '../content/File.vue';
-import { SquareMousePointerIcon, TrashIcon } from 'lucide-vue-next';
+import { toast } from "vue-sonner";
+import {
+  dropSelection,
+  selectedItems,
+} from "../../composables/useFileManagerSelect";
+import { ModalForm } from "@matemat-cmsfly/cmsfly-core/components/modal";
+import FmBasicTable from "../../structure/content/FmBasicTable.vue";
+import { InertiaFormProps } from "@inertiajs/vue3";
+import { Button } from "@matemat-cmsfly/cmsfly-core/components/ui/button";
+import { Trash2Icon } from "lucide-vue-next";
 
 
-const processing = ref(false)
+const items = ref<(Directory | File)[]>([]);
 
-const items = ref< (Directory | File)[] >([])
+const dialog = ref(false);
 
+const description = computed(() => 'Delete ' + selectedItems.value.length + ' items')
 
+const formData = {}
 
-const model = defineModel<boolean | undefined>('open')
+watch(dialog, () => {
+  items.value = selectedItems.value.map((i) => i);
+});
+onMounted(() => {
+  items.value = selectedItems.value.map((i) => i);
+});
 
-watch(model,(v)=>{
-  items.value = selectedItems.value.map((i)=>i)
-})
-onMounted(()=>{
-  items.value = selectedItems.value.map((i)=>i)
-})
+async function handleSubmit(form: InertiaFormProps<typeof formData>) {
+  form.processing = true;
 
-async function handleSubmit(){
-
-  processing.value = true
-
-  const {data,error} = await useAppFetch(route('fm.delete')).post({
-    disk:currentDisk.value,
-    items: selectedItems.value.map((i) => { return {path:i.path, type: i.type}} )
-  }).json<FmBaseResponse>()
-
-  processing.value = false
-
-  if(data.value?.result.status == 'success'){
-    showDialog.value = false
-    const itemsCount = selectedItems.value.length
-    toast({
-      title: 'Delete',
-      description: `${itemsCount} item(s) deleted successfully.`,
-      variant: 'constructive',
-    })
-
-    refresh()
+  if(!selectedItems.value.length){
+    dialog.value = false
     return
   }
-   if(data.value?.result.status == 'error'){
 
-    if(data.value?.result.message == 'aclError'){
-      toast({
-        title: 'Delete',
-        description: "You have no permission!",
-        variant: 'destructive',
-      })
-    }
-  }
-}
+  const { data } = await useAppFetch(route("fm.delete"))
+    .post({
+      disk: currentDisk.value,
+      items: selectedItems.value.map((i) => {
+        return { path: i.path, type: i.type };
+      }),
+    })
+    .json<FmBaseResponse>();
 
+  form.processing = false;
 
-function handleSelectAll(){
-  if(items.value.length == selectedItems.value.length){
+  if (data.value?.result.status == "success") {
+    dialog.value = false;
+    const itemsCount = selectedItems.value.length;
+    toast.success(`${itemsCount} item(s) deleted.`);
+
     dropSelection()
-  }else{
-    selectedItems.value = items.value.map(i => i)
+    refresh();
+    updateTreeFolder(currentFolder.value?.path!)
+    return;
+  }
+
+  if (data.value?.result.status == "error") {
+    toast.error(data.value.result.message == "aclError" ? "You have no permission!" : "Something went wrong")
   }
 }
 
 </script>
 
 <template>
-<Dialog v-model:open="model">
-  <DialogScrollContent class="max-w-xl">
-    <DialogHeader>
-      <DialogTitle> Delete </DialogTitle>
-      <DialogDescription>
-        Delete <span class="font-semibold">{{ selectedItems.length }}</span> files (directories)
-      </DialogDescription>
-    </DialogHeader>
-    <div>
-      <div class="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead width="44">
-                  <Button class="px-1.5" size="xs" variant="ghost" @click="handleSelectAll">
-                    <SquareMousePointerIcon />
-                  </Button>
-              </TableHead>
+ <ModalForm
+    v-model:open="dialog"
+    title="Delete"
+    :description="description"
+    :data="formData"
+    @submit-form="handleSubmit"
+  >
+    <slot />
 
-              <TableHead >
-                  <span>
-                    Name
-                  </span>
-              </TableHead>
-              <TableHead v-if="isSearch">
-              <span>
-                Path
-              </span>
-              </TableHead>
-              <TableHead >
-                <span>
-                  Date
-                </span>
-              </TableHead>
-              <TableHead >
-                <span  >
-                  Type
-                </span>
-              </TableHead>
-              <TableHead >
-                <span>
-                  Size
-                </span>
+    <template #form>
+      <FmBasicTable
+        :items="items"
+      />
+    </template>
 
-              </TableHead>
-
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            <DirectoryComponent
-              v-for="dir in items.filter((i)=> i.type == 'dir')"
-              :dir="dir"
-              view="table"
-              @click.stop="toggleSelect(dir)"
-            />
-            <FileComponent
-              v-for="file in items.filter((i)=> i.type == 'file') as File[]"
-              :file="file"
-              view="table"
-              @click.stop="toggleSelect(file)"
-            />
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-    <DialogFooter>
-      <DialogClose>
-        <Button :variant="'outline'">
-            Cancel
-        </Button>
-      </DialogClose>
-      <Button
-      :disabled="processing"
-      @click="handleSubmit"
-      :size="'default'"
-      :variant="'destructive'"
-      type="submit">
-        <TrashIcon />
-        Delete Items
+    <template #confirm>
+      <Button variant="destructive">
+        <Trash2Icon />
+        Delete
       </Button>
-    </DialogFooter>
-  </DialogScrollContent>
-</Dialog>
+    </template>
+  </ModalForm>
 </template>

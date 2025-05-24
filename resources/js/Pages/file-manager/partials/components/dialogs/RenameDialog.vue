@@ -1,98 +1,90 @@
 <script setup lang="ts">
-import { Dialog, DialogScrollContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogClose} from '@matemat-cmsfly/cmsfly-core/components/ui/dialog';
-import { Button } from '@matemat-cmsfly/cmsfly-core/components/ui/button';
-import { FormInput } from '@matemat-cmsfly/cmsfly-core/components/form';
-import { useAppFetch } from '@matemat-cmsfly/cmsfly-core/composables/useAppFetch';
-import {  ref, onMounted, watch, computed } from 'vue';
-import { FmBaseResponse, File , Directory } from '../../types';
-import { currentDisk, currentFolder, refresh } from '../../composables/useFileManagerCore';
-import { showDialog } from '../../composables/useFileManagerActions';
-import { toast } from '@matemat-cmsfly/cmsfly-core/components/ui/toast';
-import { selectedItems } from '../../composables/useFileManagerSelect';
+import { ModalForm } from "@matemat-cmsfly/cmsfly-core/components/modal";
+import { FormInput } from "@matemat-cmsfly/cmsfly-core/components/form";
+import { useAppFetch } from "@matemat-cmsfly/cmsfly-core/composables/useAppFetch";
+import { onMounted, watch, computed, ref } from "vue";
+import { FmBaseResponse, File, Directory } from "../../types";
+import {
+  currentDisk,
+  currentFolder,
+  refresh,
+} from "../../composables/useFileManagerCore";
+import { toast } from "vue-sonner";
+import { dropSelection, selectedItems } from "../../composables/useFileManagerSelect";
+import { InertiaFormProps } from "@inertiajs/vue3";
 
+const dialog = ref(false);
 
-const processing = ref(false)
+const description = computed(() => item.value?.type == 'dir' ? 'Rename folder' : 'Rename file' )
 
-const item = computed<File | Directory>({
-  get(){
-    return selectedItems.value[0]
-  },
-  set(){}
-})
-
-const name = ref('')
-
-const inputError  = ref< string | undefined>(undefined)
-
-const model = defineModel<boolean | undefined>('open')
-
-watch(model,(v)=>{
-  name.value = item.value.basename
-})
-onMounted(()=>{
-  name.value = item.value.basename
-})
-
-async function handleSubmit(){
-
-  processing.value = true
-
-  const {data,error} = await useAppFetch(route('fm.rename')).post({
-    disk:currentDisk.value,
-    newName: currentFolder.value ? currentFolder.value?.path + '/' + name.value : name.value,
-    oldName: currentFolder.value ? currentFolder.value?.path + '/' + item.value.basename : item.value.basename,
-    type: item.value.type
-  }).json<FmBaseResponse>()
-
-  processing.value = false
-
-  if(data.value?.result.status == 'success'){
-    showDialog.value = false
-
-    toast({
-      title: 'Rename',
-      description: 'Item renamed successfully.',
-      variant: 'constructive',
-    })
-
-    refresh()
-    return
-  }
-
-  if(data.value?.result.status == 'warning'){
-      inputError.value = 'Something went wrong.'
-
-  }
-
+const formData = {
+  name:''
 }
 
+const item = computed<File | Directory>({
+  get() {
+    return selectedItems.value[0];
+  },
+  set() {},
+});
+
+watch(dialog, () => {
+  formData.name = item.value?.basename;
+}, { immediate:true });
+
+async function handleSubmit(form: InertiaFormProps<typeof formData>) {
+  if(!currentFolder.value)return
+  form.processing = true;
+
+  const { data } = await useAppFetch(route("fm.rename"))
+    .post({
+      disk: currentDisk.value,
+      newName: currentFolder.value
+        ? currentFolder.value.path + "/" + form.data().name
+        : form.data().name,
+      oldName: currentFolder.value
+        ? currentFolder.value.path + "/" + item.value.basename
+        : item.value.basename,
+      type: item.value.type,
+    })
+    .json<FmBaseResponse>();
+
+  form.processing = false;
+
+  if (data.value?.result.status == "success") {
+    form.reset()
+    dialog.value = false;
+
+    toast.success("Item renamed");
+
+    dropSelection();
+    refresh();
+    return;
+  }
+
+  if (data.value?.result.status == "warning") {
+    toast.error("Something went wrong");
+  }
+}
 </script>
 
 <template>
-<Dialog v-model:open="model">
-  <DialogScrollContent class="max-w-xl">
-    <DialogHeader>
-      <DialogTitle> Rename </DialogTitle>
-      <DialogDescription>
-        Rename file(directory)
-      </DialogDescription>
-    </DialogHeader>
-    <div v-if="item">
-      <FormInput v-model="name" :error="inputError" id="new_file_name" type="text" label="File name" required/>
-    </div>
-    <DialogFooter>
-      <DialogClose>
-        <Button :variant="'outline'">
-            Cancel
-        </Button>
-      </DialogClose>
-      <Button
-      :disabled="processing"
-      @click="handleSubmit"
-      type="submit">
-        Submit
-      </Button>
-    </DialogFooter>
-  </DialogScrollContent>
-</Dialog>
+  <ModalForm
+    v-model:open="dialog"
+    title="Rename"
+    :description="description"
+    :data="formData"
+    @submit-form="handleSubmit"
+  >
+    <slot />
+
+    <template #form="{ bind }">
+      <FormInput
+        v-bind="bind.name"
+        :label="item?.type == 'file' ? 'File name' : 'Folder name'"
+        required
+      />
+    </template>
+
+  </ModalForm>
 </template>

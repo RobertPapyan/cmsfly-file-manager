@@ -1,8 +1,17 @@
 import { LucideIcon } from "lucide-vue-next";
-import { Ref } from "vue";
+import { Component, Ref } from "vue";
 
+type ContentTypes = 'file' | 'dir' | 'disk'
 
-interface MenuItem {
+interface MenuItemDialog {
+  label: string
+  key: string
+  icon: LucideIcon
+  isActive: boolean | Ref<boolean>
+  dialog: Component
+}
+
+interface MenuItemCallback {
   label: string
   key: string
   icon: LucideIcon
@@ -12,8 +21,8 @@ interface MenuItem {
 
 interface MenuSection {
   key: string
-  type: 'section' | 'singular'
-  items: MenuItem[]
+  type: "section" | "singular"
+  items: (MenuItemCallback | MenuItemDialog)[]
 }
 
 interface Config {
@@ -28,8 +37,8 @@ interface Content {
 }
 
 interface FmResult {
-  status:string,
-  message:string
+  status: string
+  message: string
 }
 
 interface File {
@@ -40,7 +49,7 @@ interface File {
   path: string
   size: number
   timestamp: number
-  type: string
+  type: ContentTypes
   visibility: string
   acl?: number
 }
@@ -50,23 +59,23 @@ interface Directory {
   dirname: string
   path: string
   timestamp: number
-  type: string
+  type: ContentTypes
   visibility: string
   acl?: number
 }
 
 interface TreeNode extends Directory {
-  props : {
+  props: {
     hasSubdirectories: boolean
   }
-  directories? : TreeNode[]
+  directories?: TreeNode[]
 }
 
 interface FmBaseResponse {
   result: {
     status: string
     message: string | null
-  }
+  };
 }
 
 interface ContentResponse extends FmBaseResponse {
@@ -80,14 +89,14 @@ interface TreeResponse extends FmBaseResponse {
 
 interface Sort {
   by: SortOption
-  direction: 'asc' | 'desc'
+  direction: "asc" | "desc"
 }
 
-type SortOption = 'name' | 'date' | 'size' | 'path'
+type SortOption = "name" | "date" | "size" | "path"
 
 interface Clipboard {
   directories: string[]
   files: string[]
   disk: string
-  type: 'copy' | 'cut'
+  type: "copy" | "cut"
 }

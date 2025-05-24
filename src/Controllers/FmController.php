@@ -2,11 +2,10 @@
 
 namespace MatematCmsfly\CmsflyFileManager\Controllers;
 
-use MatematCmsfly\CmsflyFileManager\FileManager;
 use Alexusmai\LaravelFileManager\Controllers\FileManagerController as AlexFileManagerController;
 use Alexusmai\LaravelFileManager\Requests\RequestValidator;
 use Illuminate\Http\JsonResponse;
-
+use MatematCmsfly\CmsflyFileManager\FileManager;
 
 class FmController extends AlexFileManagerController
 {
@@ -24,8 +23,7 @@ class FmController extends AlexFileManagerController
             $this->fm->search(
                 $request->input('disk'),
                 $request->input('search')
-                )
+            )
         );
     }
-
 }

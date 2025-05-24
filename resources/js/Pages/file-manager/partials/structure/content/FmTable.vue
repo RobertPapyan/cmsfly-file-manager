@@ -1,105 +1,95 @@
 <script setup lang="ts">
-import { Table, TableBody, TableHeader, TableHead, TableRow } from '@matemat-cmsfly/cmsfly-core/components/ui/table';
-import { Button } from '@matemat-cmsfly/cmsfly-core/components/ui/button';
-import { ArrowUpNarrowWideIcon, ArrowDownWideNarrowIcon, ChevronsUpDownIcon, SquareMousePointerIcon } from 'lucide-vue-next';
-import { fmSort, sortContent } from '../../composables/useFileManagerSort';
-import { SortOption } from '../../types';
-import { content, isSearch } from '../../composables/useFileManagerCore';
-import { dropSelection, selectAll, selectedItems } from '../../composables/useFileManagerSelect';
+import {
+  Table,
+  TableBody,
+  TableHeader,
+  TableHead,
+  TableRow,
+} from "@matemat-cmsfly/cmsfly-core/components/ui/table";
+import { Button } from "@matemat-cmsfly/cmsfly-core/components/ui/button";
+import {
+  ArrowUpNarrowWideIcon,
+  ArrowDownWideNarrowIcon,
+  ChevronsUpDownIcon,
+} from "lucide-vue-next";
+import { fmSort, sortContent } from "../../composables/useFileManagerSort";
+import { SortOption } from "../../types";
+import { content, isSearch } from "../../composables/useFileManagerCore";
+import { selectedItems } from "../../composables/useFileManagerSelect";
+import { Checkbox } from "@matemat-cmsfly/cmsfly-core/components/ui/checkbox";
+import { computed } from "vue";
 
 const getSortIcon = (column: SortOption) => {
-
-  if(fmSort.value.by != column)   return ChevronsUpDownIcon;
+  if (fmSort.value.by != column) return ChevronsUpDownIcon;
 
   if (fmSort.value.direction === "asc") return ArrowDownWideNarrowIcon;
   if (fmSort.value.direction === "desc") return ArrowUpNarrowWideIcon;
-
 };
 
-function handleSort(by:SortOption){
-  sortContent(content,by)
+function handleSort(by: SortOption) {
+  sortContent(content, by);
 }
 
-function handleSelectAll(){
-  if(selectedItems.value.length == content.value.directories.length + content.value.files.length){
-    dropSelection()
-    return
-  }
-  selectAll(content.value)
-}
-
+const data = computed(() => [
+  ...content.value.directories,
+  ...content.value.files,
+]);
 </script>
 
 <template>
   <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead width="44">
-              <Button class="px-1.5" size="xs" variant="ghost" @click="handleSelectAll">
-                <SquareMousePointerIcon />
-              </Button>
-          </TableHead>
+    <TableHeader class="before:rounded-none">
+      <TableRow>
+        <TableHead>
+          <Checkbox
+            class="block bg-background"
+            :model-value="data.every((item) => selectedItems!.includes(item))"
+            @update:model-value="selectedItems = $event ? [...data] : []"
+          />
+        </TableHead>
 
-          <TableHead >
-              <Button
-                size="xs"
-                class="capitalize"
-                variant="ghost"
-                @click="handleSort('name')"
-              >
-                Name
-                <component :is="getSortIcon('name')" />
-              </Button>
+        <TableHead>
+          <Button size="sm" variant="secondary" @click="handleSort('name')">
+            Name
+            <component
+              :is="getSortIcon('name')"
+              class="size-3 text-muted-foreground"
+            />
+          </Button>
+        </TableHead>
+        <TableHead v-if="isSearch">
+          <Button size="sm" variant="secondary" @click="handleSort('path')">
+            Path
+            <component
+              :is="getSortIcon('path')"
+              class="size-3 text-muted-foreground"
+            />
+          </Button>
+        </TableHead>
+        <TableHead>
+          <Button size="sm" variant="secondary" @click="handleSort('date')">
+            Date
+            <component
+              :is="getSortIcon('date')"
+              class="size-3 text-muted-foreground"
+            />
+          </Button>
+        </TableHead>
+        <TableHead> Type </TableHead>
+        <TableHead>
+          <Button size="sm" variant="secondary" @click="handleSort('size')">
+            Size
+            <component
+              :is="getSortIcon('size')"
+              class="size-3 text-muted-foreground"
+            />
+          </Button>
+        </TableHead>
+      </TableRow>
+    </TableHeader>
 
-            </TableHead>
-            <TableHead v-if="isSearch">
-              <Button
-                size="xs"
-                class="capitalize"
-                variant="ghost"
-                @click="handleSort('path')"
-              >
-                Path
-                <component :is="getSortIcon('path')" />
-              </Button>
-
-            </TableHead>
-            <TableHead >
-              <Button
-                size="xs"
-                class="capitalize"
-                variant="ghost"
-                 @click="handleSort('date')"
-              >
-                Date
-                <component :is="getSortIcon('date')" />
-              </Button>
-
-            </TableHead>
-            <TableHead >
-              <span  >
-                Type
-              </span>
-
-            </TableHead>
-            <TableHead >
-              <Button
-                size="xs"
-                class="capitalize"
-                variant="ghost"
-                 @click="handleSort('size')"
-              >
-                Size
-                <component :is="getSortIcon('size')" />
-              </Button>
-
-            </TableHead>
-
-        </TableRow>
-      </TableHeader>
-
-      <TableBody>
-        <slot></slot>
-      </TableBody>
+    <TableBody>
+      <slot></slot>
+    </TableBody>
   </Table>
 </template>

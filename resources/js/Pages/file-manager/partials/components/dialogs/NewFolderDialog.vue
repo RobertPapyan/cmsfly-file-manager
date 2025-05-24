@@ -1,83 +1,70 @@
 <script setup lang="ts">
-import { Dialog, DialogScrollContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogClose} from '@matemat-cmsfly/cmsfly-core/components/ui/dialog';
-import { Button } from '@matemat-cmsfly/cmsfly-core/components/ui/button';
-import { FormInput } from '@matemat-cmsfly/cmsfly-core/components/form';
-import { useAppFetch } from '@matemat-cmsfly/cmsfly-core/composables/useAppFetch';
-import { ref } from 'vue';
-import { FmBaseResponse } from '../../types';
-import { currentDisk, currentFolder, refresh } from '../../composables/useFileManagerCore';
-import { showDialog } from '../../composables/useFileManagerActions';
-import { toast } from '@matemat-cmsfly/cmsfly-core/components/ui/toast';
+import { FormInput } from "@matemat-cmsfly/cmsfly-core/components/form";
+import { useAppFetch } from "@matemat-cmsfly/cmsfly-core/composables/useAppFetch";
+import { ref } from "vue";
+import { FmBaseResponse } from "../../types";
+import {
+  currentDisk,
+  currentFolder,
+  refresh,
+  updateTreeFolder,
+} from "../../composables/useFileManagerCore";
+import { toast } from "vue-sonner";
+import { ModalForm } from "@matemat-cmsfly/cmsfly-core/components/modal";
+import { InertiaFormProps } from "@inertiajs/vue3";
 
-const processing = ref(false)
+const dialog = ref(false);
 
-const name = ref('')
+const formData = {
+  name: "",
+};
 
-const inputError  = ref< string | undefined>(undefined)
+async function handleSubmit(form: InertiaFormProps<typeof formData>) {
+  if (!currentFolder.value) return;
+  form.processing = true;
 
-async function handleSubmit(){
-  processing.value = true
-
-  const {data,error} = await useAppFetch(route('fm.create-directory')).post({
-    disk:currentDisk.value,
-    path:currentFolder.value?.path,
-    name:name.value
-  }).json<FmBaseResponse>()
-
-  processing.value = false
-
-  if(data.value?.result.status == 'success'){
-    showDialog.value = false
-
-    toast({
-      title: 'Folder',
-      description: 'Folder created successfully.',
-      variant: 'constructive',
+  const { data } = await useAppFetch(route("fm.create-directory"))
+    .post({
+      disk: currentDisk.value,
+      path: currentFolder.value.path,
+      name: form.data().name,
     })
-    refresh()
-    return
+    .json<FmBaseResponse>();
+
+  form.processing = false;
+
+  if (data.value?.result.status == "success") {
+    form.reset();
+    dialog.value = false;
+    toast.success("Folder created");
+
+    refresh();
+    updateTreeFolder(currentFolder.value.path);
+    return;
   }
 
-  if(data.value?.result.status == 'warning'){
-
-    if(data.value?.result.message == 'dirExist'){
-      inputError.value = 'Folder with this name already exists.'
-    }else{
-      inputError.value = 'Something went wrong.'
-    }
+  if (data.value?.result.status == "warning") {
+    toast.error(
+      data.value.result.message == "dirExist"
+        ? "Folder with this name already exists"
+        : "Something went wrong",
+    );
   }
-
 }
-
 </script>
 
 <template>
-<Dialog >
-  <DialogScrollContent class="max-w-xl">
-    <DialogHeader>
-      <DialogTitle> Create New Folder </DialogTitle>
-      <DialogDescription>
-        Create new folder in current directory
-      </DialogDescription>
-    </DialogHeader>
-    <div>
+  <ModalForm
+    v-model:open="dialog"
+    title="Create New Folder"
+    description="Create new folder in current directory"
+    :data="formData"
+    @submit-form="handleSubmit"
+  >
+    <slot />
 
-      <FormInput v-model="name" :error="inputError" id="new_file_name" type="text" label="Folder name" required/>
-
-    </div>
-    <DialogFooter>
-      <DialogClose>
-        <Button :variant="'outline'">
-            Cancel
-        </Button>
-      </DialogClose>
-      <Button
-      :disabled="processing"
-      @click="handleSubmit"
-      type="submit">
-        Submit
-      </Button>
-    </DialogFooter>
-  </DialogScrollContent>
-</Dialog>
+    <template #form="{ bind }">
+      <FormInput v-bind="bind.name" label="Folder name" required />
+    </template>
+  </ModalForm>
 </template>
